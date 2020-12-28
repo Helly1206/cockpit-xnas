@@ -1,0 +1,14 @@
+{
+    "version": "215",
+    "requires": {
+	    "cockpit": "186"
+    },
+    "menu": {
+        "index": {
+            "label": "Xnas",
+            "path": "xnas.html",
+            "order": 255
+        }
+    },
+    "content-security-policy": "img-src * data: 'unsafe-inline'; default-src 'self' 'unsafe-inline' 'unsafe-eval'"
+}
