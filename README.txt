@@ -1,9 +1,9 @@
-cockpit-xnas v0.8.0
+cockpit-xnas v0.8.1
 
 cockpit-xnas -- cockpit UI for XNAS
 ============ == ======= == === ====
 
-This plugin not heavily documented yet, but that is probably not nessessary. It's a cockit UI to use and
+This plugin not heavily documented yet, but that is probably not necessary. It's a cockpit UI to use and
 configure XNAS from a web UI.
 
 It uses cockpit-stdplgin as standard look and feel for this UI.
