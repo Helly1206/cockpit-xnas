@@ -157,7 +157,7 @@ class settings {
             var iData = JSON.parse(data);
             var oData = {};
             for (var key in iData) {
-                oData[key.replace("srv","").replace("dyn","")] = iData[key];
+                oData[key.replace("srv","").replace("dyn","").replace("autofix","af")] = iData[key];
             }
             this.buildEditForm(oData);
         }
@@ -201,7 +201,7 @@ class settings {
         //{"srvenable": true, "dyninterval": 60, "dynzfshealth": true, "dynremovable": true}
         var dlgData = [{
                 param: "enable",
-                text: "Enable",
+                text: "Enable xservices",
                 value: aData.enable,
                 type: "boolean",
                 onchange: settingsCallback,
@@ -210,7 +210,7 @@ class settings {
                 comment: "Enables or disable xservices"
             }, {
                 param: "interval",
-                text: "Interval [s]",
+                text: "Dynmount interval [s]",
                 value: aData.interval,
                 type: "number",
                 min: 0,
@@ -222,7 +222,7 @@ class settings {
                 comment: "Dynmount database reloading interval"
             }, {
                 param: "zfshealth",
-                text: "Health",
+                text: "Dynmount zfs health",
                 value: aData.zfshealth,
                 type: "boolean",
                 onchange: settingsCallback,
@@ -231,13 +231,46 @@ class settings {
                 comment: "Dynmount disables degraded ZFS pools"
             }, {
                 param: "removable",
-                text: "Removable",
+                text: "Dymount removable",
                 value: aData.removable,
                 type: "boolean",
                 onchange: settingsCallback,
                 disabled: false,
                 readonly: false,
                 comment: "Dynmount dynamically mount devices not in fstab"
+            }, {
+                param: "afenable",
+                text: "Enable autofix",
+                value: aData.afenable,
+                type: "boolean",
+                onchange: settingsCallback,
+                disabled: false,
+                readonly: false,
+                comment: "Enables or disables autofix of errors during startup"
+            }, {
+                param: "afretries",
+                text: "Autofix retries",
+                value: aData.afretries,
+                type: "number",
+                min: 0,
+                max: 10000,
+                step: 1,
+                onchange: settingsCallback,
+                disabled: false,
+                readonly: false,
+                comment: "Number of autofix retries (0 = unlimited)"
+            }, {
+                param: "afinterval",
+                text: "Autofix interval [s]",
+                value: aData.afinterval,
+                type: "number",
+                min: 0,
+                max: 3600,
+                step: 1,
+                onchange: settingsCallback,
+                disabled: false,
+                readonly: false,
+                comment: "Autofix retry interval"
             }
         ];
         this.pane.getSettingsEditForm().setData(dlgData);
@@ -341,10 +374,50 @@ function cs2arr(data, force = true) {
     if ((force) || (data.includes(","))) {
         arr = data.split(",").map(s => s.trim());
     } else {
-        arr = data;
+        arr = Array.from(data);
     }
 
     return arr;
+}
+
+function cs2arrFilter(data, fltr = []) {
+    var retarr = [];
+    var arr = cs2arr(data);
+
+    arr.forEach(datum => {
+        let delItem = false;
+        fltr.forEach(tag => {
+            if (datum.includes(tag)) {
+                delItem = true;
+            }
+        });
+        if (!delItem) {
+            retarr.push(datum)
+        }
+    });
+    return retarr;
+}
+
+function getDefopts() {
+    return ["auto","noauto","rw","ro","atime","noatime","diratime","nodiratime","_netdev",
+            "x-systemd.automount","x-systemd.idle-timeout","x-systemd.mount-timeout",
+            "dir_mode", "file_mode", "umask"];
+}
+
+function csGetVal(data, tag = "") {
+    var val = 0;
+    var arr = cs2arr(data);
+
+    arr.forEach(datum => {
+        if (datum.includes(tag)) {
+            var arr2 = [];
+            arr2 = data.split("=").map(s => s.trim());
+            if (arr2.length > 1) {
+                val = parseInt(arr2[1]);
+            }
+        }
+    });
+    return val;
 }
 
 function generateUniqueName(list, value, value2 = "", value3 = "") {

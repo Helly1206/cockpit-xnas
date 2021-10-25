@@ -13,8 +13,6 @@ class xremotemount {
         this.dropdownContent = [
             {name : "Mount", disable: "mounted", disableValue: true, callback: this.mount},
             {name : "Unmount", disable: "mounted", disableValue: false, callback: this.unmount},
-            {name : "Enable", disable: "enabled", disableValue: true, callback: this.enable},
-            {name : "Disable", disable: "!candisable", disableValue: false, callback: this.disable},
             {name : "Clear", disable: "referenced", disableValue: true, callback: this.clear},
             {name : "Delete", disable: "referenced", disableValue: true, callback: this.delete}
         ];
@@ -51,7 +49,7 @@ class xremotemount {
             var lData = JSON.parse(data);
             this.xmounts = [];
             lData.forEach(datum => {
-                datum['!candisable'] = ((datum.enabled) && (!datum.referenced));
+                //datum['!candisable'] = ((datum.enabled) && (!datum.referenced));
                 this.xmounts.push(datum.xmount);
             });
             this.pane.getTable().setData(lData);
@@ -93,7 +91,16 @@ class xremotemount {
                 disabled: (!username)
             }]);
         };
-
+        var methodChangedCallback = function(param, method) {
+            if (method == "auto" && aData.idletimeout == 0) {
+                aData.idletimeout = 30;
+            }
+            dialog.updateData([{
+                param: "idletimeout",
+                value: aData.idletimeout,
+                disabled: (method != "auto")
+            }]);
+        };
         var dlgData = [{
                 param: "https",
                 text: "Https server",
@@ -151,14 +158,6 @@ class xremotemount {
                 disabled: false,
                 readonly: false,
                 comment: "Special options for this filesystem"
-            }, {
-                param: "auto",
-                text: "Mount on startup",
-                value: aData.auto,
-                type: "boolean",
-                disabled: false,
-                readonly: false,
-                comment: "Automatically mount this filesystem on startup"
             }, {
                 param: "rw",
                 text: "Mount read/ write",
@@ -226,14 +225,37 @@ class xremotemount {
                 readonly: false,
                 comment: "Login password for remote mount (if left empty, password is not changed)"
             }, {
-                param: "dynmount",
-                text: "Dynamical mount",
-                value: aData.dynmount,
-                type: "boolean",
-                opts: [],
+                param: "method",
+                text: "Mount method",
+                value: aData.method,
+                type: "select",
+                opts: ["disabled", "startup", "auto", "dynmount"],
                 disabled: false,
                 readonly: false,
-                comment: "Dynamically mount Xremotemount when becoming available"
+                comment: "Mount method for this Xremotemount",
+                onchange: methodChangedCallback,
+            }, {
+                param: "idletimeout",
+                text: "Idle timeout",
+                value: aData.idletimeout,
+                type: "number",
+                min: 0,
+                max: 32767,
+                step: 1,
+                disabled: (aData.method != "auto"),
+                readonly: false,
+                comment: "Unmount automount when idle for timeout seconds (default = 30)"
+            }, {
+                param: "timeout",
+                text: "Timeout",
+                value: aData.timeout,
+                type: "number",
+                min: 0,
+                max: 32767,
+                step: 1,
+                disabled: false,
+                readonly: false,
+                comment: "Mount timeout in seconds (default = 10)"
             }
         ];
         var title = "";
@@ -291,12 +313,32 @@ class xremotemount {
             editData.sharename = data.sharename;
             editData.mountpoint = data.mountpoint;
             editData.type = data.type;
-            editData.options = cs2arr(data.options);
-            editData.auto = !data.options.includes("noauto");
+            editData.options = cs2arrFilter(data.options, getDefopts());
             editData.rw = !data.options.includes("ro");
             editData.ssd = data.options.includes("noatime");
             editData.freq = data.dump;
             editData.pass = data.pass;
+            if (!data.options.includes("noauto")) {
+                editData.method = "startup";
+                editData.idletimeout = 0;
+            } else {
+                if (data.options.includes("x-systemd.automount")) {
+                    editData.method = "auto";
+                    if (data.options.includes("x-systemd.idle-timeout")) {
+                        editData.idletimeout = csGetVal(data.options, "x-systemd.idle-timeout");
+                    } else {
+                        editData.idletimeout = 30;
+                    }
+                } else {
+                    editData.method = "disabled";
+                    editData.idletimeout = 0;
+                }
+            }
+            if (data.options.includes("x-systemd.mount-timeout")) {
+                editData.timeout = csGetVal(data.options, "x-systemd.mount-timeout");
+            } else {
+                editData.timeout = 10;
+            }
         } else {
             editData.https = true;
             editData.server = "";
@@ -304,18 +346,20 @@ class xremotemount {
             editData.mountpoint = "/mnt/" + generateUniqueName(this.xremotemounts, "myRemotemount");
             editData.type = "cifs";
             editData.options = [];
-            editData.auto = true;
+            //editData.auto = true;
             editData.rw = true;
             editData.ssd = true;
             editData.freq = 0;
             editData.pass = 0;
+            editData.method = "auto";
+            editData.idletimeout = 30;
+            editData.timeout = 10;
         }
 
         editData.uacc = "rw";
         editData.sacc = "rw";
         editData.username = "";
         editData.password = "";
-        editData.dynmount = false;
 
         return editData;
     }
@@ -378,6 +422,7 @@ class xremotemount {
         new confirmDialog(this, "Unmount " + data.xremotemount, txt, cbYes);
     }
 
+    /*
     enable(data) {
         var cbYes = function() {
             this.pane.showSpinner("Enabling...");
@@ -397,6 +442,7 @@ class xremotemount {
                     "This item will not automatically mount during startup!"
         new confirmDialog(this, "Disable " + data.xremotemount, txt, cbYes);
     }
+    */
 
     clear(data) {
         var cbYes = function() {

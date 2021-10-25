@@ -11,10 +11,8 @@ class xshare {
         this.name = "xshare";
         this.pane = new tabPane(this, el, this.name);
         this.dropdownContent = [
-            {name : "Bind", disable: "bound", disableValue: true, callback: this.bind},
-            {name : "Unbind", disable: "referenced", disableValue: true, callback: this.unbind},
             {name : "Enable", disable: "enabled", disableValue: true, callback: this.enable},
-            {name : "Disable", disable: "enabled", disableValue: false, callback: this.disable},
+            {name : "Disable", disable: "!candisable", disableValue: false, callback: this.disable},
             {name : "Delete", disable: "referenced", disableValue: true, callback: this.delete}
         ];
         this.xshares = [];
@@ -49,6 +47,7 @@ class xshare {
             var lData = JSON.parse(data);
             this.xshares = [];
             lData.forEach(datum => {
+                datum['!candisable'] = ((datum.enabled) && (!datum.referenced));
                 this.xshares.push(datum.xshare);
             });
             this.pane.getTable().setData(lData);
@@ -67,7 +66,7 @@ class xshare {
         var cbEdit = function(jData) {
             this.pane.getTable().loadingDone();
             this.pane.disposeSpinner();
-            this.buildEditDialog(data.xshare, JSON.parse(jData));
+            this.buildEditDialog(data.xshare, JSON.parse(jData), [], data.enabled);
         }
         if ("xshare" in data) {
             this.pane.showSpinner();
@@ -77,7 +76,7 @@ class xshare {
         }
     }
 
-    buildEditDialog(xname, aData, lstData = []) {
+    buildEditDialog(xname, aData, lstData = [], enabled = false) {
         var xmountChangedCallback = function(param, xmount) {
             var remotemount = false;
             var mountpoint = "";
@@ -131,7 +130,6 @@ class xshare {
             new msgBox(this, "No valid Xmounts found", "Please add Xmounts or Xremotemounts first");
             return;
         }
-
         var dlgData = [{
                 param: "xmount",
                 text: "Xmount",
@@ -139,7 +137,7 @@ class xshare {
                 type: "select",
                 opts: xmountOpts,
                 disabled: xmountDisabled,
-                readonly: false,
+                readonly: enabled,
                 onchange: xmountChangedCallback,
                 comment: "Xmount or Xremotemount to share"
             }, {
@@ -148,7 +146,7 @@ class xshare {
                 value: aData.remotemount,
                 type: "boolean",
                 disabled: false,
-                readonly: true,
+                readonly: enabled,
                 comment: "Is the current mount a remote mount?"
             }, {
                 param: "folder",
@@ -156,7 +154,7 @@ class xshare {
                 value: aData.folder,
                 type: "file",
                 disabled: false,
-                readonly: false,
+                readonly: enabled,
                 alttext: "Select folder to share",
                 filedir: true,
                 filesave: false,
@@ -166,24 +164,6 @@ class xshare {
                 filerelative: true,
                 onchange: folderChangedCallback,
                 comment: "Relative folder to share on xmount"
-            }, {
-                param: "uacc",
-                text: "User access level",
-                value: access2string(aData.uacc),
-                type: "select",
-                opts: ["none", "read", "read/write"],
-                disabled: false,
-                readonly: false,
-                comment: "Access level for normal users (non superusers)"
-            }, {
-                param: "sacc",
-                text: "Superuser access level",
-                value: access2string(aData.sacc),
-                type: "select",
-                opts: ["none", "read", "read/write"],
-                disabled: false,
-                readonly: false,
-                comment: "Access level for superusers"
             }
         ];
         var title = "";
@@ -203,11 +183,10 @@ class xshare {
         }
         var dialog = new editDialog(this);
         var cbOk = function(rData) {
-            rData.sacc = string2access(rData.sacc);
-            rData.uacc = string2access(rData.uacc);
             this.addEdit(rData, xname, aData);
         }
         dialog.build(title, dlgData, cbOk);
+        dialog.setEditButtonDisabled(enabled);
     }
 
     tryName(xmount, folder) {
@@ -240,11 +219,10 @@ class xshare {
         } else {
             editData.xmount = "";
             editData.remotemount = false;
+            editData.mountpoint = "";
         }
 
         editData.folder = "";
-        editData.uacc = "rw";
-        editData.sacc = "rw";
 
         return editData;
     }
@@ -252,9 +230,13 @@ class xshare {
     addXshare(data = null) {
         var cbBuildLstData = function(lstData) {
             var editData = this.buildAddData(data);
+            var enabled = false;
+            if ((data != null) && ("enabled" in data)) {
+                enabled = data.enabled;
+            }
             this.pane.getTable().loadingDone();
             this.pane.disposeSpinner();
-            this.buildEditDialog(null, editData, JSON.parse(lstData));
+            this.buildEditDialog(null, editData, JSON.parse(lstData), enabled);
         };
         this.pane.showSpinner();
         runCmd.call(this, this.name, cbBuildLstData, ["lst"]);
@@ -292,6 +274,7 @@ class xshare {
         }
     }
 
+    /*
     bind(data) {
         var cbYes = function() {
             this.pane.showSpinner("Binding...");
@@ -309,6 +292,7 @@ class xshare {
         var txt = "Are you sure to unbind " + data.xshare + "?";
         new confirmDialog(this, "Unbind " + data.xshare, txt, cbYes);
     }
+    */
 
     enable(data) {
         var cbYes = function() {
@@ -316,7 +300,7 @@ class xshare {
             runCmd.call(this, this.name, this.getXshares, ["ena", data.xshare]);
         };
         var txt = "Are you sure to enable " + data.xshare + "?" + "<br>" +
-                    "This item will be accessible and automatically bind during startup!"
+                    "This item will be accessible locally and for netshares!"
         new confirmDialog(this, "Enable " + data.xshare, txt, cbYes);
     }
 
@@ -326,7 +310,7 @@ class xshare {
             runCmd.call(this, this.name, this.getXshares, ["dis", data.xshare]);
         };
         var txt = "Are you sure to disable " + data.xshare + "?" + "<br>" +
-                    "This item will not be accessible and not automatically bind during startup!"
+                    "This item will not be accessible locally and for netshares!"
         new confirmDialog(this, "Disable " + data.xshare, txt, cbYes);
     }
 

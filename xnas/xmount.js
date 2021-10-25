@@ -13,12 +13,10 @@ class xmount {
         this.dropdownContent = [
             {name : "Mount", disable: "mounted", disableValue: true, callback: this.mount},
             {name : "Unmount", disable: "mounted", disableValue: false, callback: this.unmount},
-            {name : "Enable", disable: "enabled", disableValue: true, callback: this.enable},
-            {name : "Disable", disable: "!candisable", disableValue: false, callback: this.disable},
             {name : "Clear", disable: "referenced", disableValue: true, callback: this.clear},
             {name : "Delete", disable: "referenced", disableValue: true, callback: this.delete}
         ];
-        this.fsTypes = ["ext2", "ext3", "ext4", "ntfs", "ntfs-3g", "fat", "vfat", "btrfs", "jfs", "xfs", "iso9660", "udf", "zfs"];
+        this.fsTypes = ["ext2", "ext3", "ext4", "ntfs", "ntfs-3g", "fat", "vfat", "exfat", "btrfs", "jfs", "xfs", "iso9660", "udf", "zfs"];
         this.xmounts = [];
     }
 
@@ -63,7 +61,7 @@ class xmount {
             var lData = JSON.parse(data);
             this.xmounts = [];
             lData.forEach(datum => {
-                datum['!candisable'] = ((datum.enabled) && (!datum.referenced));
+                //datum['!candisable'] = ((datum.enabled) && (!datum.referenced));
                 this.xmounts.push(datum.xmount);
             });
             this.pane.getTable().setData(lData);
@@ -99,13 +97,8 @@ class xmount {
             this.buildEditDialog(data.xmount, JSON.parse(jData));
         }
         if (("xmount" in data) && (data.xmount != "-")) {
-            if (("referenced" in data) && (data.referenced)) {
-                new msgBox(this, "Xmount is referenced", "Please remove reference(s) for Xmount " + data.xmount + " first");
-                this.pane.getTable().loadingDone();
-            } else {
-                this.pane.showSpinner();
-                runCmd.call(this, this.name, cbEdit, ["shw", data.xmount], ["--human"]);
-            }
+            this.pane.showSpinner();
+            runCmd.call(this, this.name, cbEdit, ["shw", data.xmount], ["--human"]);
         } else {
             this.addXmount(data);
         }
@@ -116,6 +109,8 @@ class xmount {
         var labels = [];
         var fsnameReadOnly = true;
         var lastFsname = "";
+        var methodOpts = [];
+        var defaultMethodOpts = ["disabled", "startup", "auto", "dynmount"];
         if (allData.length > 0) {
             aData = allData[0];
             allData.forEach(allDatum => {
@@ -135,6 +130,11 @@ class xmount {
             labels.push(aData.label);
             lastFsname = aData.fsname;
         }
+        if (aData.type == "zfs") {
+            methodOpts = defaultMethodOpts.filter(e => e !== 'auto');
+        } else {
+            methodOpts = Array.from(defaultMethodOpts);
+        }
         var fsnameChangedCallback = function(param, fsname) {
             if (fsname != lastFsname) {
                 if (!fsname) {
@@ -148,8 +148,10 @@ class xmount {
                 let name = "";
                 if (aData.type == "zfs") {
                     name = generateUniqueName(this.xmounts, aData.mountpoint, aData.label);
+                    methodOpts = Array.filter(e => e !== 'auto');
                 } else {
                     name = generateUniqueName(this.xmounts, aData.mountpoint, aData.label, aData.fsname);
+                    methodOpts = Array.from(defaultMethodOpts);
                 }
                 dialog.updateData([{
                     param: "fsname",
@@ -166,9 +168,6 @@ class xmount {
                 }, {
                     param: "options",
                     value: aData.options
-                }, {
-                    param: "auto",
-                    value: aData.auto
                 }, {
                     param: "rw",
                     value: aData.rw
@@ -188,11 +187,25 @@ class xmount {
                     param: "sacc",
                     value: access2string(aData.sacc)
                 }, {
-                    param: "dynmount",
-                    value: aData.dynmount
+                    param: "method",
+                    value: aData.method,
+                    opts: methodOpts
+                }, {
+                    param: "idletimeout",
+                    value: aData.idletimeout,
+                    disabled: (aData.method != "auto")
+                }, {
+                    param: "timeout",
+                    value: aData.timeout
                 }]);
             }
             lastFsname = fsname;
+        };
+        var methodChangedCallback = function(param, method) {
+            dialog.updateData([{
+                param: "idletimeout",
+                disabled: (method != "auto")
+            }]);
         };
         var dlgData = [{
                 param: "fsname",
@@ -238,14 +251,6 @@ class xmount {
                 disabled: false,
                 readonly: false,
                 comment: "Special options for this filesystem"
-            }, {
-                param: "auto",
-                text: "Mount on startup",
-                value: aData.auto,
-                type: "boolean",
-                disabled: false,
-                readonly: false,
-                comment: "Automatically mount this filesystem on startup"
             }, {
                 param: "rw",
                 text: "Mount read/ write",
@@ -303,14 +308,37 @@ class xmount {
                 readonly: false,
                 comment: "Access level for superusers"
             }, {
-                param: "dynmount",
-                text: "Dynamical mount",
-                value: aData.dynmount,
-                type: "boolean",
-                opts: [],
+                param: "method",
+                text: "Mount method",
+                value: aData.method,
+                type: "select",
+                opts: methodOpts,
                 disabled: false,
                 readonly: false,
-                comment: "Dynamically mount Xmount when becoming available"
+                comment: "Mount method for this Xmount",
+                onchange: methodChangedCallback,
+            }, {
+                param: "idletimeout",
+                text: "Idle timeout",
+                value: aData.idletimeout,
+                type: "number",
+                min: 0,
+                max: 32767,
+                step: 1,
+                disabled: (aData.method != "auto"),
+                readonly: false,
+                comment: "Unmount automount when idle for timeout seconds (default = 0)"
+            }, {
+                param: "timeout",
+                text: "Timeout",
+                value: aData.timeout,
+                type: "number",
+                min: 0,
+                max: 32767,
+                step: 1,
+                disabled: false,
+                readonly: false,
+                comment: "Mount timeout in seconds (default = 0)"
             }
         ];
         var title = "";
@@ -343,6 +371,10 @@ class xmount {
             if (rData.type == "zfs") {
                 delete rData.fsname;
                 rData.label = aData.label;
+            } else if ("xmount" in rData) { // new, always add fsname
+                if (!("fsname" in rData)) {
+                    rData.fsname = aData.fsname;
+                }
             }
             this.addEdit(rData, xname, aData);
         }
@@ -374,31 +406,69 @@ class xmount {
         }
         if (blkData.length > 0) {
             editData.label = blkData[0].label;
-            editData.mountpoint = blkData[0].mountpoint;
+            if (blkData[0].mountpoint == null) {
+                editData.mountpoint = "";
+            } else {
+                editData.mountpoint = blkData[0].mountpoint;
+            }
             editData.type = blkData[0].type;
         } else { // should never happen
             editData.type = "none";
+            editData.mountpoint = "";
+            editData.label = "";
         }
-
         if ("type" in lstData) {
-            editData.options = cs2arr(lstData.options);
-            editData.auto = !lstData.options.includes("noauto");
+            editData.options = cs2arrFilter(lstData.options, getDefopts());
             editData.rw = !lstData.options.includes("ro");
             editData.ssd = lstData.options.includes("noatime");
             editData.freq = lstData.dump;
             editData.pass = lstData.pass;
+            if (!lstData.options.includes("noauto")) {
+                editData.method = "startup";
+                editData.idletimeout = 0;
+            } else {
+                if (lstData.options.includes("x-systemd.automount")) {
+                    editData.method = "auto";
+                    if (lstData.options.includes("x-systemd.idle-timeout")) {
+                        editData.idletimeout = csGetVal(lstData.options, "x-systemd.idle-timeout");
+                    } else {
+                        editData.idletimeout = 0;
+                    }
+                } else {
+                    editData.method = "disabled";
+                    editData.idletimeout = 0;
+                }
+            }
+            if (lstData.options.includes("x-systemd.mount-timeout")) {
+                editData.timeout = csGetVal(lstData.options, "x-systemd.mount-timeout");
+            } else {
+                editData.timeout = 0;
+            }
         } else {
             editData.options = [];
-            editData.auto = true;
             editData.rw = true;
             editData.ssd = true;
             editData.freq = 0;
             editData.pass = 0;
+            editData.method = "startup";
+            editData.idletimeout = 0;
+            editData.timeout = 0;
+        }
+
+        if (editData.mountpoint == "") {
+            if (editData.label) {
+                editData.mountpoint = "/mnt/" + editData.label.trim().replace(" ","_").replace("/","_");
+            } else {
+                if (Array.isArray(editData.fsname)) {
+                    editData.mountpoint = "/mnt/" + editData.fsname[0].trim().replace(" ","_").replace("/","_");
+                } else {
+                    editData.mountpoint = "/mnt/" + editData.fsname.trim().replace(" ","_").replace("/","_");
+                }
+            }
         }
 
         editData.uacc = "rw";
         editData.sacc = "rw";
-        editData.dynmount = false;
 
         return editData;
     }
@@ -423,7 +493,7 @@ class xmount {
 
     addXmount(data = null) {
         var buildDlgData = function(blkData, lstData) {
-            var editData = this.buildAddData(blkData, data);
+            var editData = this.buildAddData(blkData, lstData);
             this.pane.getTable().loadingDone();
             this.pane.disposeSpinner();
             if (('type' in editData) && (editData.type != "none")) {
@@ -544,6 +614,7 @@ class xmount {
         new confirmDialog(this, "Unmount " + data.xmount, txt, cbYes);
     }
 
+    /*
     enable(data) {
         var cbYes = function() {
             this.pane.showSpinner("Enabling...");
@@ -563,6 +634,7 @@ class xmount {
                     "This item will not automatically mount during startup!"
         new confirmDialog(this, "Disable " + data.xmount, txt, cbYes);
     }
+    */
 
     clear(data) {
         var cbYes = function() {

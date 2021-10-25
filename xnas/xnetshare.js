@@ -5,25 +5,6 @@
  *          I. Helwegen 2020                             *
  *********************************************************/
 
-// privs as table per mount
-// priv screen/ popup
-
-
-// add (list xshares that are not added), xnetshares (no lst button as no other screen) --> DONE
-// buttons for cifs homes, users, --> DONE
-// buttons for config (cifs, nfs) --> DONE
-// config nfs screen --> DONE
-// config cifs screen (with homes, users buttons) --> DONE
-// config homes --> DONE
-// refresh button on both --> DONE
-// on click homes: to homes menu --> DONE
-// no ... options on click homes --> DONE
-// config users --> DONE
-// retain scroll bar after popup --> DONE
-// popup when nothing can be added --> DONE
-// small dialog to select cifs or nfs on add??? --> DONE
-// // add/ edit nfs and cifs shares --> DONE
-
 class xnetshare {
     constructor(el) {
         this.el = el;
