@@ -1,3 +1,8 @@
+[B]0.9.2[/B]
+- Added option to switch off automatic emptying of cifs recycle bin
+- Added possibility to manually empty cifs recycle bin
+- Added s2hfs (sshfs) to remotemount  filesystems
+
 [B]0.9.0[/B]
 - Updates for changing dynmount to method: disabled, startup, auto, dynmount
 - Updates for adding auto method

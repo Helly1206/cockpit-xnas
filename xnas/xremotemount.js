@@ -16,7 +16,9 @@ class xremotemount {
             {name : "Clear", disable: "referenced", disableValue: true, callback: this.clear},
             {name : "Delete", disable: "referenced", disableValue: true, callback: this.delete}
         ];
-        this.fsTypes = ["cifs", "davfs", "nfs", "nfs4"];
+        this.fsTypes = ["cifs", "davfs", "nfs", "nfs4", "s2hfs"];
+        this.actions = ["none", "addkey", "addcred", "delkey", "delcred"];
+        this.actionsText = ["No action", "Generate and add key pair", "Add credentials", "Delete key pair", "Delete credentials"];
         this.xremotemounts = [];
     }
 
@@ -83,6 +85,9 @@ class xremotemount {
             dialog.updateData([{
                 param: "https",
                 disabled: (fstype != "davfs")
+            },{
+                param: "action",
+                disabled: (fstype != "s2hfs")
             }]);
         };
         var usernameChangedCallback = function(param, username) {
@@ -101,6 +106,14 @@ class xremotemount {
                 disabled: (method != "auto")
             }]);
         };
+        var actionText = this.actionsText[0];
+        if (aData.type == "s2hfs") {
+            // remove username from server (username is always given if applicable)
+            var serverParts = aData.server.split("@");
+            if (serverParts[0] == aData.username) {
+                aData.server = serverParts.slice(1).join("@");
+            }
+        }
         var dlgData = [{
                 param: "https",
                 text: "Https server",
@@ -225,6 +238,15 @@ class xremotemount {
                 readonly: false,
                 comment: "Login password for remote mount (if left empty, password is not changed)"
             }, {
+                param: "action",
+                text: "Action for S2HFS",
+                value: actionText,
+                type: "select",
+                opts: this.actionsText,
+                disabled: (aData.type != "s2hfs"),
+                readonly: false,
+                comment: "Action to manage credentials and keys for S2HFS"
+            }, {
                 param: "method",
                 text: "Mount method",
                 value: aData.method,
@@ -278,6 +300,13 @@ class xremotemount {
         var cbOk = function(rData) {
             rData.sacc = string2access(rData.sacc);
             rData.uacc = string2access(rData.uacc);
+            rData.action = this.actions[this.actionsText.indexOf(rData.action)];
+            if (rData.type == "s2hfs") {
+                // add username to server
+                if (rData.username) {
+                    rData.server = rData.username + "@" + rData.server;
+                }
+            }
             this.addEdit(rData, xname, aData);
         }
         dialog.build(title, dlgData, cbOk);
@@ -375,12 +404,15 @@ class xremotemount {
     addEdit(data, xname, aData) {
         var addXremotemount = false;
         var opts = [];
+        console.log(data);
+        console.log(aData);
         if ("xremotemount" in data) {
             xname = data.xremotemount;
             addXremotemount = true;
             aData = {};
         }
         opts = buildOpts(data, aData, ["xremotemount"]);
+        console.log(opts);
         if (xname) {
             if ((addXremotemount) && (this.xremotemounts.includes(xname))) {
                 new msgBox(this, "Existing Xremotemount name " + xname, "Please enter a unique name for the Xremotemount");

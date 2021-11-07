@@ -16,7 +16,8 @@ class xnetshare {
             {name : "Privileges", disable: "!hasprivs", disableValue: false, callback: this.CifsPrivs},
             {name : "Enable", disable: "!canenable", disableValue: false, callback: this.enable},
             {name : "Disable", disable: "!candisable", disableValue: false, callback: this.disable},
-            {name : "Delete", disable: "!candelete", disableValue: false, callback: this.delete}
+            {name : "Delete", disable: "!candelete", disableValue: false, callback: this.delete},
+            {name : "Empty bin", disable: "!hasprivs", disableValue: false, callback: this.emptyBin}
         ];
         this.UsersDropdownContent = [
             {name : "Delete", disable: null, disableValue: null, callback: this.CifsUsrDelete}
@@ -38,6 +39,7 @@ class xnetshare {
         this.pane.addButton("add", "Add", this.addXnetshare, true, false, false);
         this.pane.addButton("nfs", "NFS config", function(){this.displayNfsConfig();this.getNfsSettings();}.bind(this), false, false, false);
         this.pane.addButton("cifs", "CIFS config", function(){this.displayCifsConfig();this.getCifsSettings();}.bind(this), false, false, false);
+        this.pane.addButton("bins", "Empty bins", this.emptyBins, true, false, false);
         this.pane.getTable().setOnClick(this.tableClickCallback);
         this.pane.getTable().setDropDown(this.dropdownContent);
         this.getXnetshares();
@@ -1100,6 +1102,30 @@ class xnetshare {
         };
         var txt = "Are you sure to reset the CIFS server settings to default?"
         new confirmDialog(this, "Clear CIFS", txt, cbYes);
+    }
+
+    emptyBins() {
+        var cbYes = function() {
+            var cbBins = function(jData) {
+                this.pane.disposeSpinner();
+            }
+            this.pane.showSpinner("Emptying recycle bins...");
+            runCmd.call(this, this.name, cbBins, ["bin"]);
+        };
+        var txt = "Are you sure to empty all CIFS recycle bins?"
+        new confirmDialog(this, "Empty recycle bins", txt, cbYes);
+    }
+
+    emptyBin(data) {
+        var cbYes = function() {
+            var cbBin = function(jData) {
+                this.pane.disposeSpinner();
+            }
+            this.pane.showSpinner("Emptying recycle bin...");
+            runCmd.call(this, this.name, cbBin, ["bin", data.xnetshare]);
+        };
+        var txt = "Are you sure to empty CIFS recycle bin of " + data.xnetshare + "?"
+        new confirmDialog(this, "Empty recycle bin", txt, cbYes);
     }
 
     refreshNfs() {

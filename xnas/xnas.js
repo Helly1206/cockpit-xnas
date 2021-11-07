@@ -157,7 +157,7 @@ class settings {
             var iData = JSON.parse(data);
             var oData = {};
             for (var key in iData) {
-                oData[key.replace("srv","").replace("dyn","").replace("autofix","af")] = iData[key];
+                oData[key.replace("srv","").replace("dyn","").replace("autofix","af").replace("cifsautobin", "bin")] = iData[key];
             }
             this.buildEditForm(oData);
         }
@@ -238,6 +238,15 @@ class settings {
                 disabled: false,
                 readonly: false,
                 comment: "Dynmount dynamically mount devices not in fstab"
+            }, {
+                param: "binenable",
+                text: "CIFS bin enable",
+                value: aData.binenable,
+                type: "boolean",
+                onchange: settingsCallback,
+                disabled: false,
+                readonly: false,
+                comment: "Enables or disables automatic emptying CIFS recycle bin"
             }, {
                 param: "afenable",
                 text: "Enable autofix",
