@@ -1,3 +1,6 @@
+[B]0.9.3[/B]
+- Updated gui to cockpit >=264
+
 [B]0.9.2[/B]
 - Added option to switch off automatic emptying of cifs recycle bin
 - Added possibility to manually empty cifs recycle bin
