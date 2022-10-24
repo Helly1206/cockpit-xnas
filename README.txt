@@ -1,4 +1,4 @@
-cockpit-xnas v0.9.2
+cockpit-xnas v0.9.3
 
 cockpit-xnas -- cockpit UI for XNAS
 ============ == ======= == === ====
