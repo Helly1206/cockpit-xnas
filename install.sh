@@ -20,10 +20,14 @@ minify_install () {
         mkdir -p ".$USRLOC"
     fi
 
-    minify -r -o ".$USRLOC" --match="\.js" $NAME
+    minify -o ".$USRLOC/$NAME.js" "$NAME/$NAME.js"
+    minify -o ".$USRLOC/xmount.js" "$NAME/xmount.js"
+    minify -o ".$USRLOC/xnetshare.js" "$NAME/xnetshare.js"
+    minify -o ".$USRLOC/xremotemount.js" "$NAME/xremotemount.js"
+    minify -o ".$USRLOC/xshare.js" "$NAME/xshare.js"
     #minify -r -o ".$USRLOC" --match="\.css" $NAME
     #minify -r -o ".$USRLOC" --match="\.html" $NAME
-    cp "$NAME/xnas.html" ".$USRLOC/"
+    cp "$NAME/$NAME.html" ".$USRLOC/"
     cp "$NAME/manifest.json" ".$USRLOC/"
 }
 
