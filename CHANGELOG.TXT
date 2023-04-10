@@ -1,3 +1,7 @@
+[B]1.0.0[/B]
+- Some bugfixing in unmatched list and block devices
+- Adding ability to xmount logical volumes
+
 [B]0.9.4[/B]
 - Fixed deb generation folder error
 

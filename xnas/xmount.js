@@ -396,6 +396,8 @@ class xmount {
             } else {
                 editData.fsname = fsname;
             }
+        } else {
+            editData.fsname = "";
         }
         if (uuid.length > 0) {
             if (uuid.length == 1) {
@@ -403,6 +405,8 @@ class xmount {
             } else {
                 editData.uuid = uuid;
             }
+        } else {
+            editData.uuid = "";
         }
         if (blkData.length > 0) {
             editData.label = blkData[0].label;
@@ -412,9 +416,13 @@ class xmount {
                 editData.mountpoint = blkData[0].mountpoint;
             }
             editData.type = blkData[0].type;
-        } else { // should never happen
+        } else { // no blkData, make type none, so it cannot be added
             editData.type = "none";
-            editData.mountpoint = "";
+            if ("mountpoint" in lstData) {
+                editData.mountpoint = lstData.mountpoint;
+            } else {
+                editData.mountpoint = "";
+            }
             editData.label = "";
         }
         if ("type" in lstData) {
@@ -457,12 +465,16 @@ class xmount {
 
         if (editData.mountpoint == "") {
             if (editData.label) {
-                editData.mountpoint = "/mnt/" + editData.label.trim().replace(" ","_").replace("/","_");
+                editData.mountpoint = "/mnt/" + editData.label.trim().replaceAll(" ","_").replaceAll("/","_");
             } else {
                 if (Array.isArray(editData.fsname)) {
-                    editData.mountpoint = "/mnt/" + editData.fsname[0].trim().replace(" ","_").replace("/","_");
+                    editData.mountpoint = "/mnt/" + editData.fsname[0].trim().replaceAll(" ","_").replaceAll("/","_");
+                } else if (editData.fsname) {
+                    editData.mountpoint = "/mnt/" + editData.fsname.trim().replaceAll(" ","_").replaceAll("/","_");
+                } else if ("type" in lstData) {
+                    editData.mountpoint = "/mnt/" + lstData.device.trim().replaceAll(" ","_").replaceAll("/","_");
                 } else {
-                    editData.mountpoint = "/mnt/" + editData.fsname.trim().replace(" ","_").replace("/","_");
+                    editData.mountpoint = "/mnt/randommountpoint" + Math.floor(Math.random() * 10000);
                 }
             }
         }
@@ -477,14 +489,16 @@ class xmount {
         var fit = false;
         if (('type' in lstDatum) && ('type' in blkDatum)) {
             if (lstDatum.type == "zfs") {
-                if (lstDatum["uuid/ fsname/ label"] == blkDatum.label) {
+                if (lstDatum.device == blkDatum.label) {
                     fit = true;
                 }
-            } else if (lstDatum["uuid/ fsname/ label"].toLowerCase() == blkDatum.uuid.toLowerCase()) {
+            } else if ((blkDatum.uuid) && (lstDatum.uuid) && (blkDatum.uuid == lstDatum.uuid)) {
                 fit = true;
-            } else if (lstDatum["uuid/ fsname/ label"].toLowerCase() == blkDatum.label.toLowerCase()) {
+            } else if ((blkDatum.uuid) && (lstDatum.device.toLowerCase() == blkDatum.uuid.toLowerCase())) {
                 fit = true;
-            } else if (lstDatum["uuid/ fsname/ label"] == blkDatum.fsname) {
+            } else if ((blkDatum.label) && (lstDatum.device.toLowerCase() == blkDatum.label.toLowerCase())) {
+                fit = true;
+            } else if ((blkDatum.fsname) && (lstDatum.device.toLowerCase() == blkDatum.fsname.toLowerCase())) {
                 fit = true;
             }
         }

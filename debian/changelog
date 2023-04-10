@@ -1,3 +1,10 @@
+cockpit-xnas (1.00) stable; urgency=low
+
+  * Some bugfixing in unmatched list and block devices
+  * Adding ability to xmount logical volumes
+
+-- Helly1206 <hellyrulez@hotmail.com>  Sun, 9 Apr 2023 11:40:27 +0100
+
 cockpit-xnas (0.94) stable; urgency=low
 
   * Fixed deb generation folder error
