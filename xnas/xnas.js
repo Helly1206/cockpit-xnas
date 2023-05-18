@@ -157,7 +157,11 @@ class settings {
             var iData = JSON.parse(data);
             var oData = {};
             for (var key in iData) {
-                oData[key.replace("srv","").replace("dyn","").replace("autofix","af").replace("cifsautobin", "bin")] = iData[key];
+                oData[key.replace("srv","")
+                         .replace("dyn","")
+                         .replace("autofix","af")
+                         .replace("cifsautobin", "bin")
+                         .replace("zfsmountrecursive", "zfsmntrec")] = iData[key];
             }
             this.buildEditForm(oData);
         }
@@ -280,6 +284,15 @@ class settings {
                 disabled: false,
                 readonly: false,
                 comment: "Autofix retry interval"
+            }, {
+                param: "zfsmntrec",
+                text: "Zfs mount recursive",
+                value: aData.zfsmntrec,
+                type: "boolean",
+                onchange: settingsCallback,
+                disabled: false,
+                readonly: false,
+                comment: "Enables or disables zfs recursive mount"
             }
         ];
         this.pane.getSettingsEditForm().setData(dlgData);

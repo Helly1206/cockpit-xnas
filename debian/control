@@ -8,7 +8,7 @@ XB-Plugin-Section: sharing
 
 Package: cockpit-xnas
 Architecture: all
-Depends: xnas (>= 1.10),
+Depends: xnas (>= 1.11),
          cockpit,
          cockpit-stdplgin (>= 0.86),
          ${misc:Depends}

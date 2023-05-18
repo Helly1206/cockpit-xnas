@@ -1,3 +1,9 @@
+cockpit-xnas (1.01) stable; urgency=low
+
+  * Added option for recursive mounting for ZFS (mount child filesystems)
+
+ -- Helly1206 <hellyrulez@hotmail.com>  Sun, 7 May 2023 19:07:32 +0100
+
 cockpit-xnas (1.00) stable; urgency=low
 
   * Some bugfixing in unmatched list and block devices
