@@ -10,6 +10,6 @@ Package: cockpit-xnas
 Architecture: all
 Depends: xnas (>= 1.11),
          cockpit,
-         cockpit-stdplgin (>= 0.86),
+         cockpit-stdplgin (>= 0.93),
          ${misc:Depends}
 Description: cockpit-xnas (cockpit UI for XNAS)
